@@ -312,4 +312,4 @@ _Pvt_Extensions
 # FAKE - F# Make
 .fake/
 
-/python/virtenv/include/python2.7
+/python/virtenv/
