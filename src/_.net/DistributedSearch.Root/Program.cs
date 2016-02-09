@@ -26,7 +26,7 @@ namespace DistributedSearch.Root
 					Console.WriteLine("enter your search term:");
 					string q = Console.ReadLine();
 
-					Console.WriteLine("enter the categories you'd like to search (comma separeted):");
+					Console.WriteLine("enter the categories you'd like to search (comma separated):");
 					string[] categories = Console.ReadLine().Split(','); //new string[] { "*" };
 
 					Search search = new Search
