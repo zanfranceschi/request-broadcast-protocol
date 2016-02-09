@@ -45,7 +45,7 @@ The following is a brief explanation of the source code.
 ## Backlog
 
 **TODO**
-- A more detailed explanation of the protocols.
+- A more detailed explanation of the protocol.
 - Java Client Node implementation.
 
 **ISSUES**
