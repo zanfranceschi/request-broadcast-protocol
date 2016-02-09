@@ -48,6 +48,7 @@ The following is a brief explanation of the source code.
 - A more detailed explanation of the protocol.
 - Java Client Node implementation.
 - Parallel Client Nodes implementation.
+- Results relevance ordering.
 
 **ISSUES**
 - If a Search Node sends a very large result set, it may clog up the Client Node very badly.
