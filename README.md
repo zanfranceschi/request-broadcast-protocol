@@ -5,4 +5,4 @@ Distributed-Search is a proposed architecture for distributed and collaborative 
 This pseudo protocol is more of an experiment and has a long way to go before use in production environments (if only it achieves this readiness).
 
 A rough and very high level of how this works is depicted below:
-![alt tag](https://raw.githubusercontent.com/zanfranceschi/distributed-search/master/docs/distributed-search-behaviour.jpg)
+![alt tag](https://raw.githubusercontent.com/zanfranceschi/distributed-search/master/docs/img/distributed-search-behaviour.jpg)
