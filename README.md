@@ -51,6 +51,6 @@ The following is a brief explanation of the source code.
 - Results relevance ordering.
 
 **ISSUES**
-- If a Search Node sends a very large result set, it may clog up the Client Node very badly.
+- If a Search Node sends a very large result set, it may clog up the Client Node very badly. Maybe ZMQ_RCVBUF could do -- have to fiddle with this.
 - Slow Search Nodes increases Client Node check times for acks and results. The use of a messaging system that implements message TTL -- like RabbitMQ, for example -- could sort this out. I'd rather come up with an idea to still use ZeroMQ -- it's blazing fast and I really like the brokerless nature of it.
 
