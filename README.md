@@ -2,13 +2,13 @@
 
 Distributed-Search is a proposed architecture for distributed and collaborative search. It's plataform agnostic and aims to provide very loose coupling between search and client nodes. The source code in this repository is for illustrative purposes only to show how it should work.
 
-This pseudo protocol is more of an experiment and has a long way to go before use in production environments (if only it achieves this readiness).
+This high level protocol is more of an experiment and has a long way to go before being production ready (if only it achieves this readiness).
 
 A rough and high level of how this works is depicted below:
 ![alt tag](https://raw.githubusercontent.com/zanfranceschi/distributed-search/master/docs/imgs/distributed-search-behaviour.jpg)
 
 This search architecture is composed by two kinds of nodes or components:
-- **Client Node:** The component responsible for transmitting the search notification to search nodes in an indirect way (using the pub/sub pattern).
+- **Client Node:** The component responsible for transmitting the search notification to search nodes in an indirect way (using the pub/sub messaging pattern).
 - **Search Node:** The component that receives search notifications; checks if it can perform the search; if it can, it then _acks_ to the Client Node; and then sends the search results.
 
 ## Source Code
@@ -47,7 +47,9 @@ The following is a brief explanation of the source code.
 **TODO**
 - A more detailed explanation of the protocol.
 - Java Client Node implementation.
+- Parallel Client Nodes implementation.
 
 **ISSUES**
 - If a Search Node sends a very large result set, it may clog up the Client Node very badly.
-- Slow Search Nodes increases, Client Node check times for acks and results also increases.
+- Slow Search Nodes increases Client Node check times for acks and results. The use of a messaging system that implements message TTL -- like RabbitMQ, for example -- could sort this out. I'd rather come up with an idea to still use ZeroMQ -- it's blazing fast and I really like the brokerless nature of it.
+
