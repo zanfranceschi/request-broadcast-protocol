@@ -11,8 +11,6 @@ This search architecture is composed by two kinds of nodes or components:
 - **Client Node:** The component responsible for transmitting the search notification to search nodes in an indirect way (using the pub/sub pattern).
 - **Search Node:** The component that receives search notifications; checks if it can perform the search; if it can, it then _acks_ to the Client Node; and then sends the search results.
 
-// TODO: A more detailed explanation of the protocols. Sorry.
-
 ## Source Code
 
 As previously mentioned, the source of this repo is for illustrative purposes only. There are implementations in three languages to exhibit the agnostic nature of this pseudo protocol.
@@ -43,3 +41,13 @@ The following is a brief explanation of the source code.
 **dependencies:**
 - pyzmq
 - uuid
+
+## Backlog
+
+**TODO**
+- A more detailed explanation of the protocols.
+- Java Client Node implementation.
+
+**ISSUES**
+- If a Search Node sends a very large result set, it may clog up the Client Node very badly.
+- Slow Search Nodes increases, Client Node check times for acks and results also increases.
