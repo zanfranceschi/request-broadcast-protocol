@@ -28,7 +28,7 @@ The following is a brief explanation of the source code.
 - Newtonsoft.Json
 
 ### Java
-- The Java code solely implements a search node that searches file and dir names (not content) for a given path. Since Java is not a known language to me, I'd have taken long to implement a client node.
+- The Java code solely implements a search node that searches file and dir names (not content) for a given path. It's in my TODO list to implement the Java client node.
 
 **dependencies:**
 - eclipselink-2.5.0.jar
