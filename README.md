@@ -18,7 +18,7 @@ As previously mentioned, the source of this repo is for illustrative purposes on
 The following is a brief explanation of the source code.
 
 ### .NET
-- **DistributedSearch**: Class library shared among all projects -- contains the serialization model helper methods.
+- **DistributedSearch**: Class library shared among all projects -- contains the serialization model and helper methods.
 - **DistributedSearch.Node**: Class library shared among all search node projects -- abstracts the "protocol" and facilitates implementing searching nodes.
 - **DistributedSearch.Node.Wikipedia**: Console application -- implements a search node example that perform searches on Wikipedia using its search api
 - **DistributedSearch.Root**: Console application -- implements the client node.
