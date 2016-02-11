@@ -7,23 +7,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import javax.xml.bind.JAXBException;
-
-import org.eclipse.persistence.jaxb.JAXBContextProperties;
-import org.eclipse.persistence.oxm.MediaType;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.bind.Marshaller;
-import javax.xml.transform.stream.StreamSource;
-import java.io.StringReader;
-
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Context;
 import org.zeromq.ZMQ.Socket;
 
+import com.google.gson.Gson;
+
 public class FileSystemNode {
 
-	public static void main(String[] args) throws IOException, JAXBException {
+	public static void main(String[] args) throws IOException {
 
 		Properties props = new Properties();
 		props.load(new FileInputStream("config.properties"));
@@ -39,7 +31,7 @@ public class FileSystemNode {
 		String id = props.getProperty("node_id");
 		String location = props.getProperty("location");
 		String searchPath = props.getProperty("search_path");
-		
+
 		while (!Thread.currentThread().isInterrupted()) {
 
 			System.out.println("listening...");
@@ -61,14 +53,9 @@ public class FileSystemNode {
 
 			System.out.println(payload);
 
-			JAXBContext ctx = JAXBContext.newInstance(Search.class, SearchResult.class, ResultItem.class);
-			Unmarshaller unmarshaller = ctx.createUnmarshaller();
-			unmarshaller.setProperty(JAXBContextProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
-			unmarshaller.setProperty(JAXBContextProperties.JSON_INCLUDE_ROOT, false);
-
-			StringReader reader = new StringReader(payload);
-
-			Search search = unmarshaller.unmarshal(new StreamSource(reader), Search.class).getValue();
+			Gson gson = new Gson();
+			
+			Search search = gson.fromJson(payload, Search.class);
 
 			SearchResult searchResult = new SearchResult();
 			searchResult.search = search;
@@ -96,19 +83,15 @@ public class FileSystemNode {
 			resultItems = results.toArray(resultItems);
 			searchResult.resultItems = resultItems;
 
-			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-			Marshaller marshaller = ctx.createMarshaller();
-			marshaller.setProperty(JAXBContextProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
-			marshaller.setProperty(JAXBContextProperties.JSON_INCLUDE_ROOT, false);
-			marshaller.marshal(searchResult, outputStream);
+			String serializedSearchResult = gson.toJson(searchResult);
 
 			replySocket.connect(replyEndpoint);
 
 			replySocket.sendMore(searchId);
 			replySocket.sendMore(id);
-			replySocket.send(outputStream.toString());
+			replySocket.send(serializedSearchResult);
 			System.out.println("replied:");
-			System.out.println(outputStream.toString(encoding));
+			System.out.println(serializedSearchResult);
 			System.out.println("------------------------");
 		}
 
