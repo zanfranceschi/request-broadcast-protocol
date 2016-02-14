@@ -1,15 +1,14 @@
-#!/home/zanfranceschi/Projects/distributed-search/src/python/virtenv/bin/python
 # -*- coding: utf-8 -*-
 
 import json
 import zmq
 
-class Server(object):
-	def __init__(self, request_endpoint):
-		self.request_endpoint = request_endpoint
+class RequestsSubscription(object):
+	def __init__(self, requests_endpoint):
+		self.requests_endpoint = requests_endpoint
 		ctx = zmq.Context()
 		socket_sub = ctx.socket(zmq.SUB)
-		socket_sub.connect(request_endpoint)
+		socket_sub.connect(requests_endpoint)
 		socket_sub.setsockopt(zmq.SUBSCRIBE, b'')
 
 		socket_ack = ctx.socket(zmq.DEALER)

@@ -1,4 +1,4 @@
-#!/home/zanfranceschi/Projects/distributed-search/src/python/virtenv/bin/python
+#!/home/zanfranceschi/Projects/request-broadcast-protocol/src/python/virtenv/bin/python
 # -*- coding: utf-8 -*-
 
 """
@@ -131,28 +131,6 @@ class BroadcastRequest(object):
 	def send(self, ack_timeout, response_timeout,
 		accept, accept_charset, body, on_reponse_received = None):
 
-		"""
-	   +------------+ 										 +------------+
-       |  			|        	broadcast request	 		 |            |
-	   |			| -------------------------------------> |			  |
-       |			|                        				 |			  |
-       |			|          		   ack          		 |			  |
-	   |			| <------------------------------------- |			  |
-	   |			|                        				 |			  |
-	   |			|    	 header response endpoint    	 |			  |
-	   |			| -------------------------------------> |			  |
-	   |   CLIENT	|                        				 | N SERVERS  | 
-	   |	    	|    		  header response   		 |			  |
-	   |			| <------------------------------------- |			  |
-	   |			|                          	 			 |			  |
-	   |			|         continue | don't contiue   	 |			  |
-	   |			| -------------------------------------> |			  |
-	   |			|                        				 |			  |
-	   |			|      content response (if continue)    |			  |
-	   |			| <------------------------------------- |			  |
-	   +------------+										 +------------+
-		"""
-		
 		correlation_id = str(uuid.uuid4())
 		request_flow = RequestFlow(correlation_id)
 
