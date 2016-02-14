@@ -19,25 +19,25 @@ I wanted to build a search engine capable of searching into different and unstru
 - Finally, client receives response bodies from all available servers
 
 ```
-+------------+ 								      	 +------------+
-|  			|        	broadcast request	 		 |            |
-|			| -------------------------------------> |			  |
-|			|                        				 |			  |
-|			|          		   ack          		 |			  |
-|			| <------------------------------------- |			  |
-|			|                        				 |			  |
-|			|    	 header response endpoint    	 |			  |
-|			| -------------------------------------> |			  |
-|   CLIENT	|                        				 | N SERVERS  |
-|	    	|    		  header response   		 |			  |
-|			| <------------------------------------- |			  |
-|			|                          	 			 |			  |
-|			|         continue | don't contiue   	 |			  |
-|			| -------------------------------------> |			  |
-|			|                        				 |			  |
-|			|      content response (if continue)    |			  |
-|			| <------------------------------------- |			  |
-+------------+										 +------------+
++------------+ 								      	  +------------+
+|  			 |        	broadcast request	 		  |            |
+|			 | -------------------------------------> |			   |
+|			 |                        				  |			   |
+|			 |          		   ack          	  |			   |
+|			 | <------------------------------------- |			   |
+|			 |                        				  |			   |
+|			 |    	 header response endpoint    	  |			   |
+|			 | -------------------------------------> |			   |
+|   CLIENT	 |                        				  | N SERVERS  |
+|	    	 |    		  header response   		  |			   |
+|			 | <------------------------------------- |			   |
+|			 |                          	 		  |			   |
+|			 |         continue | don't contiue   	  |			   |
+|			 | -------------------------------------> |			   |
+|			 |                        				  |			   |
+|			 |      content response (if continue)    |			   |
+|			 | <------------------------------------- |			   |
++------------+										  +------------+
 ```
 
 ## Protocol Status
