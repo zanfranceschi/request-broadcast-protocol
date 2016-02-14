@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/home/zanfranceschi/Projects/distributed-search/src/python/virtenv/bin/python
 # -*- coding: utf-8 -*-
 
 import json
@@ -24,6 +24,9 @@ try:
 		search_id = str(uuid.uuid4())
 
 		print "id:", search_id
+
+		for i in range(20):
+			socket_pub.send(b'bosta de array de bytes')
 
 		socket_pub.send("search_notification", zmq.SNDMORE) 		# topic
 		socket_pub.send(search_id, zmq.SNDMORE) 					# searchId

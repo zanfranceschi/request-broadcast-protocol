@@ -1,66 +1,105 @@
-#!/usr/bin/python
+#!/home/zanfranceschi/Projects/distributed-search/src/python/virtenv/bin/python
 # -*- coding: utf-8 -*-
 
 import json
 import zmq
 
+class Server(object):
+	def __init__(self, request_endpoint):
+		self.request_endpoint = request_endpoint
+		ctx = zmq.Context()
+		socket_sub = ctx.socket(zmq.SUB)
+		socket_sub.connect(request_endpoint)
+		socket_sub.setsockopt(zmq.SUBSCRIBE, b'')
+
+		socket_ack = ctx.socket(zmq.DEALER)
+		socket_header = ctx.socket(zmq.DEALER)
+		socket_body = ctx.socket(zmq.DEALER)
+
+
+
+
 ctx = zmq.Context()
 socket_sub = ctx.socket(zmq.SUB)
 socket_sub.connect("tcp://localhost:5000")
-socket_sub.setsockopt(zmq.SUBSCRIBE, "search_notification")
+socket_sub.setsockopt(zmq.SUBSCRIBE, b'')
 
 socket_ack = ctx.socket(zmq.DEALER)
-socket_reply = ctx.socket(zmq.DEALER)
+socket_header = ctx.socket(zmq.DEALER)
+socket_body = ctx.socket(zmq.DEALER)
 
 node_id = "python"
 
 try:
 	while True:
 		print "listening..."
-		msg = socket_sub.recv_multipart()
+		raw_request = socket_sub.recv()
 
-		search_id = msg[1]
-		ack_endpint = msg[2]
-		reply_endpint = msg[3]
-		encoding = msg[4]
-		payload = msg[5]
+		request = json.loads(raw_request)
 
-		socket_ack.connect(ack_endpint)
-		socket_ack.send(search_id, zmq.SNDMORE)
-		socket_ack.send(node_id)
+		correlation_id = request["header"]["correlation_id"]
 
-		print "acked"
+		# ack
+		socket_ack.connect(request["header"]["ack_endpoint"])
 
-		print payload
+		ack_request = {
+			"correlation_id" : correlation_id,
+			"id" : node_id
+		}
 
-		search = json.loads(payload)
+		socket_ack.send(json.dumps(ack_request))
+		ack_response = json.loads(socket_ack.recv())
+		# /ack
+
+		q = request["body"]["q"].lower().strip()
 
 		with open("db.txt") as f:
 			lines = f.readlines()
-			result_items = [{ 
+			result = [{ 
 				"description" : line.strip(),
 				"category" : "fileContent",
 				"location" : "db.txt@localhot"
-				} for line in lines if search["q"].lower().strip() in line.lower().strip()]
+				} for line in lines if q in line.lower().strip()]
 
-		search_result = {
-			"search" : search,
-			"searchNode" : node_id,
-			"resultItems" : result_items
+		response_body = {
+			"result" : result
 		}
 
-		socket_reply.connect(reply_endpint)
-		socket_reply.send(search_id, zmq.SNDMORE)
-		socket_reply.send(node_id, zmq.SNDMORE)
-		socket_reply.send(json.dumps(search_result))
+		response_body_serialized = json.dumps(response_body)
 
-		print "replied:"
-		print search_result
-		print "-" * 50
+		reply_header = {
+			"correlation_id"	: correlation_id,
+			"id"				: node_id,
+			"content_length"	: len(response_body_serialized),
+			"content_type"		: "application/json;utf-8",
+		}
+		socket_header.connect(ack_response["response_header_endpoint"])
+		socket_header.send(json.dumps(reply_header))
+		header_reponse = json.loads(socket_header.recv())
+		
+		print header_reponse
+		
+		reply = {
+			"header" : {
+				"correlation_id" : correlation_id,
+				"id" : node_id
+			},
+			"body" : response_body
+		}
+
+		print header_reponse["response_body_endpoint"]
+
+		socket_body.connect(header_reponse["response_body_endpoint"])
+		socket_body.send(json.dumps(reply))
+
+		socket_ack.disconnect(socket_ack.LAST_ENDPOINT)
+		socket_header.disconnect(socket_header.LAST_ENDPOINT)
+		socket_body.disconnect(socket_body.LAST_ENDPOINT)
+
 
 except KeyboardInterrupt:
 	socket_sub.close()
-	socket_ack.close()
-	socket_reply.close()
+	socket_header.close()
+	socket_body.close()
 	ctx.term()
 	print "bye"
