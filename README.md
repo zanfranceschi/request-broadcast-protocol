@@ -1,56 +1,45 @@
-# Distributed-Search
+# Request Broadcast Protocol
 
-Distributed-Search is a proposed architecture for distributed and collaborative search. It's plataform agnostic and aims to provide very loose coupling between search and client nodes. The source code in this repository is for illustrative purposes only to show how it should work.
+The Request Broadcast Protocol (RBP) is a high level protocol designed to work with clients and multiple servers whose existence is not known. 
 
-This high level protocol is more of an experiment and has a long way to go before being production ready (if only it achieves this readiness).
 
-A rough and high level of how this works is depicted below:
-![alt tag](https://raw.githubusercontent.com/zanfranceschi/distributed-search/master/docs/imgs/distributed-search-behaviour.jpg)
+## Motivation
 
-This search architecture is composed by two kinds of nodes or components:
-- **Client Node:** The component responsible for transmitting the search notification to search nodes in an indirect way (using the pub/sub messaging pattern).
-- **Search Node:** The component that receives search notifications; checks if it can perform the search; if it can, it then _acks_ to the Client Node; and then sends the search results.
+I wanted to build a search engine capable of searching into different and unstructured metada such as objects database tables, application deployments, code repositories, etc. The main challenge of such search engine were more about how to design such disparate components to colaborate than implementing the individual components search. I found the architecture interesting enough to elaborate this high level protocol.
 
-## Source Code
 
-As previously mentioned, the source of this repo is for illustrative purposes only. There are implementations in three languages to exhibit the agnostic nature of this pseudo protocol.
+## High Level Flow
 
-The following is a brief explanation of the source code.
+- Client broadcasts (publishes in a pub/sub fashion) a request with an ack random endpoint
+- Servers receive the request notification and acks back to client
+- For each received ack, client responds with a "send response header to" random endpoint (in a HTTP Expect: 100-continue header fashion)
+- Servers receive the "send response header to" and send the response header to client containing information about the response body
+- For each received response header, client checks it and responds with a "send response body to" (status 100) random endpoint if the response header is satisfactory, or responds with a 417 status (not satisfactory header response)
+- Servers receive the "send response body to" and send the response body to client
+- Finally, client receives response bodies from all available servers
 
-### .NET
-- **DistributedSearch**: Class library shared among all projects -- contains the serialization model and helper methods.
-- **DistributedSearch.Node**: Class library shared among all search node projects -- abstracts the "protocol" and facilitates implementing searching nodes.
-- **DistributedSearch.Node.Wikipedia**: Console application -- implements a search node example that perform searches on Wikipedia using its search api
-- **DistributedSearch.Root**: Console application -- implements the client node.
+```
++------------+ 								      	 +------------+
+|  			|        	broadcast request	 		 |            |
+|			| -------------------------------------> |			  |
+|			|                        				 |			  |
+|			|          		   ack          		 |			  |
+|			| <------------------------------------- |			  |
+|			|                        				 |			  |
+|			|    	 header response endpoint    	 |			  |
+|			| -------------------------------------> |			  |
+|   CLIENT	|                        				 | N SERVERS  |
+|	    	|    		  header response   		 |			  |
+|			| <------------------------------------- |			  |
+|			|                          	 			 |			  |
+|			|         continue | don't contiue   	 |			  |
+|			| -------------------------------------> |			  |
+|			|                        				 |			  |
+|			|      content response (if continue)    |			  |
+|			| <------------------------------------- |			  |
++------------+										 +------------+
+```
 
-**dependencies:**
-- ZeroMQ
-- Newtonsoft.Json
+## Protocol Status
 
-### Java
-- The Java code solely implements a search node that searches file and dir names (not content) for a given path. It's in my TODO list to implement the Java client node.
-
-**dependencies:**
-- eclipselink-2.5.0.jar
-- jeromq-0.3.4.jar
-
-### Python
-- **client_node.py:** Implements the client node.
-- **search_node.py:** Implements a search node that reads a file (**db.txt**) and searches lines containing the search criterion.
-
-**dependencies:**
-- pyzmq
-- uuid
-
-## Backlog
-
-**TODO**
-- A more detailed explanation of the protocol.
-- Java Client Node implementation.
-- Parallel Client Nodes implementation.
-- Results relevance ordering.
-
-**ISSUES**
-- If a Search Node sends a very large result set, it may clog up the Client Node very badly.
-- Slow Search Nodes increases Client Node check times for acks and results. The use of a messaging system that implements message TTL -- like RabbitMQ, for example -- could sort this out. I'd rather come up with an idea to still use ZeroMQ -- it's blazing fast and I really like the brokerless nature of it.
-
+The protocol as well as its implementation are still in very early stages.
