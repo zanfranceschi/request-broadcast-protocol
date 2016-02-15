@@ -1,21 +1,8 @@
+#!/home/zanfranceschi/Projects/request-broadcast-protocol/src/python/virtenv/bin/python
 # -*- coding: utf-8 -*-
 
 import json
 import zmq
-
-class RequestsSubscription(object):
-	def __init__(self, requests_endpoint):
-		self.requests_endpoint = requests_endpoint
-		ctx = zmq.Context()
-		socket_sub = ctx.socket(zmq.SUB)
-		socket_sub.connect(requests_endpoint)
-		socket_sub.setsockopt(zmq.SUBSCRIBE, b'')
-
-		socket_ack = ctx.socket(zmq.DEALER)
-		socket_header = ctx.socket(zmq.DEALER)
-		socket_body = ctx.socket(zmq.DEALER)
-
-
 
 
 ctx = zmq.Context()
@@ -86,9 +73,9 @@ try:
 			"body" : response_body
 		}
 
-		print header_reponse["response_body_endpoint"]
+		print header_reponse["response_endpoint"]
 
-		socket_body.connect(header_reponse["response_body_endpoint"])
+		socket_body.connect(header_reponse["response_endpoint"])
 		socket_body.send(json.dumps(reply))
 
 		socket_ack.disconnect(socket_ack.LAST_ENDPOINT)
