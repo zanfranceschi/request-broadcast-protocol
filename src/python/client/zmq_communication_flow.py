@@ -25,10 +25,8 @@ class ZMQTCPClientCommunicatonFlow(ClientCommunicatonFlow):
 
 		self._set_aux_channels()
 
-	def _set_aux_channels(self):
-		self._reset_aux_channels()
 
-	def _reset_aux_channels(self):
+	def _set_aux_channels(self):
 		ack_port = self.ack_channel.bind_to_random_port("tcp://*")
 		resp_header_port = self.response_header_channel.bind_to_random_port("tcp://*")
 		resp_port = self.response_channel.bind_to_random_port("tcp://*")
@@ -45,6 +43,10 @@ class ZMQTCPClientCommunicatonFlow(ClientCommunicatonFlow):
 			self.response_header_timeout,
 			self.response_endpoint,
 			self.response_timeout)
+
+
+	def _reset_aux_channels(self):
+		self._set_aux_channels()
 
 
 	def publish_request(self, request_flow, message):
