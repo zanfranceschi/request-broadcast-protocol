@@ -3,26 +3,39 @@
 
 import abc
 import zmq
-import uuid
-import json
+from common import *
 
-class RequestProcess(object):
-	def __init__(self):
-		self.correlation_id = None
-		self.request_content = None
-		self.hostname = None
+
+def is_valid_response(response, request):
+	return request.header["correlation_id"] == response.header["correlation_id"]
+
+
+def validate_header_default(response, request):
+	valid = response.header["correlation_id"] == request.header["correlation_id"]\
+			and request.header["accept"].lower() in response.header["content_type"].lower()\
+			and request.header["accept_charset"].lower() in response.header["content_type"].lower()
+	return valid
+
+
+class RequestDialogFlow(object):
+	def __init__(self, hostname, request):
+		self.hostname = hostname
+
+		# messages
+		self.request = request
+		self.response_header_invitation = ResponseHeaderInvitation(request)
+		self.response_invitation_continue = ResponseInvitationContinue(request)
+		self.response_invitation_dontcontinue = ResponseInvitationDontContinue(request)
+
+		#sockets
 		self.ack_socket = None
-		self.ack_endpoint = None
-		self.ack_timeout = None
-		self.ack_responses = []
 		self.response_header_socket = None
-		self.response_header_endpoint = None
-		self.response_header_timeout = None
-		self.response_header_responses = []
-		self.response_content_socket = None
-		self.response_content_endpoint = None
-		self.response_content_timeout = None
-		self.response_content_responses = []
+		self.response_socket = None
+
+		#responses
+		self.acks = []
+		self.response_headers = []
+		self.responses = []
 
 
 class ClientRequestStep(object):
@@ -33,58 +46,54 @@ class ClientRequestStep(object):
 
 	def set_next(self, step):
 		self.next = step
+		return step
 
 	@abc.abstractmethod
-	def handle(self, request_process):
+	def handle(self, dialog_flow):
 		pass
 
 
 class SetDynamicEndpoints(ClientRequestStep):
-	def __init__(self, hostname):
+	def __init__(self):
 		super(SetDynamicEndpoints, self).__init__()
-		self.hostname = hostname
 		self.context = zmq.Context.instance()
 		self.ack_socket = self.context.socket(zmq.ROUTER)
 		self.response_header_socket = self.context.socket(zmq.ROUTER)
-		self.response_content_socket = self.context.socket(zmq.ROUTER)
+		self.response_socket = self.context.socket(zmq.ROUTER)
 		self.ack_endpoint = None
 		self.response_header_endpoint = None
-		self.response_content_endpoint = None
+		self.response_endpoint = None
 
-	def _prepare_for_new_request(self, hostname, socket, endpoint):
+	def _prepare_for_new_request(self, message, endpoint_name, hostname, socket):
 		if (socket.LAST_ENDPOINT): socket.unbind(socket.LAST_ENDPOINT)
 		port = socket.bind_to_random_port("tcp://*")
-		setattr(self, endpoint, "tcp://{}:{}".format(hostname, port))
+		message.header[endpoint_name] = "tcp://{}:{}".format(hostname, port)
 
-	def handle(self, request_process):
-		request_process.hostname = self.hostname
-		self._prepare_for_new_request(request_process.hostname, self.ack_socket, 'ack_endpoint')
-		self._prepare_for_new_request(request_process.hostname, self.response_header_socket, 'response_header_endpoint')
-		self._prepare_for_new_request(request_process.hostname, self.response_content_socket, 'response_content_endpoint')
-		request_process.ack_socket = self.ack_socket
-		request_process.ack_endpoint = self.ack_endpoint
-		request_process.response_header_socket = self.response_header_socket
-		request_process.response_header_endpoint = self.response_header_endpoint
-		request_process.response_content_socket = self.response_content_socket
-		request_process.response_content_endpoint = self.response_content_endpoint
-		if (self.next): self.next.handle(request_process)
+	def handle(self, dialog_flow):
+		self._prepare_for_new_request(dialog_flow.request, "ack_endpoint", dialog_flow.hostname, self.ack_socket)
+		self._prepare_for_new_request(dialog_flow.response_header_invitation, "response_header_endpoint", dialog_flow.hostname, self.response_header_socket)
+		self._prepare_for_new_request(dialog_flow.response_invitation_continue, "response_endpoint", dialog_flow.hostname, self.response_socket)
+		dialog_flow.ack_socket = self.ack_socket
+		dialog_flow.response_header_socket = self.response_header_socket
+		dialog_flow.response_socket = self.response_socket
+		if (self.next): self.next.handle(dialog_flow)
 
 
 class SetTimeouts(ClientRequestStep):
 	def __init__(self,
-		ack_timeout,
-		response_header_timeout,
-		response_content_timeout):
+				 ack_timeout,
+				 response_header_timeout,
+				 response_timeout):
 		super(SetTimeouts, self).__init__()
 		self.ack_timeout = ack_timeout
 		self.response_header_timeout = response_header_timeout
-		self.response_content_timeout = response_content_timeout
-	
-	def handle(self, request_process):
-		request_process.ack_timeout = self.ack_timeout
-		request_process.response_header_timeout = self.response_header_timeout
-		request_process.response_content_timeout = self.response_content_timeout
-		if (self.next): self.next.handle(request_process)
+		self.response_timeout = response_timeout
+
+	def handle(self, dialog_flow):
+		dialog_flow.request.header["ack_timeout"] = self.ack_timeout
+		dialog_flow.response_header_invitation.header["response_header_timeout"] = self.response_header_timeout
+		dialog_flow.response_invitation_continue.header["response_timeout"] = self.response_timeout
+		if (self.next): self.next.handle(dialog_flow)
 
 
 class RequestBroadcast(ClientRequestStep):
@@ -94,117 +103,97 @@ class RequestBroadcast(ClientRequestStep):
 		self.request_socket = self.context.socket(zmq.PUB)
 		self.request_socket.bind("tcp://*:{}".format(port))
 
-	def handle(self, request_process):
-		request_process.correlation_id = str(uuid.uuid4())
-		request_header = json.dumps({
-			"correlation_id" : request_process.correlation_id,
-			"ack_endpoint" : request_process.ack_endpoint,
-			"ack_timeout" : request_process.ack_timeout,
-			"accept_charset" : "utf-8"
-		})
-		request_process.request_content
-		self.request_socket.send_multipart([request_header, request_process.request_content])
-		if (self.next): self.next.handle(request_process)
+	def handle(self, dialog_flow):
+		self.request_socket.send(dialog_flow.request.to_wire())
+		if (self.next): self.next.handle(dialog_flow)
 
 
 class ReceiveRespondAcks(ClientRequestStep):
 	def __init__(self):
 		super(ReceiveRespondAcks, self).__init__()
 
-	def handle(self, request_process):
-		ack_response = json.dumps({
-			"correlation_id" 			: request_process.correlation_id,
-			"response_header_endpoint" 	: request_process.response_header_endpoint,
-			"response_header_timeout" 	: request_process.response_header_timeout,
-		})
+	def handle(self, dialog_flow):
 		while (True):
-			if (request_process.ack_socket.poll(request_process.ack_timeout)):
-				ack_responder = request_process.ack_socket.recv_multipart()
-				ack_responder_id = ack_responder[0]
-				ack_responder_content = json.loads(ack_responder[1])
-				if (ack_responder_content["correlation_id"] == request_process.correlation_id):
-					request_process.ack_responses.append(ack_responder_content)
-					request_process.ack_socket.send_multipart(
-						[ack_responder_id, ack_response])
+			if (dialog_flow.ack_socket.poll(dialog_flow.request.header["ack_timeout"])):
+				responder_message = dialog_flow.ack_socket.recv_multipart()
+				responder_id = responder_message[0]
+				ack = Ack.from_wire(responder_message[1])
+				if (ack.header["correlation_id"] == dialog_flow.request.header["correlation_id"]):
+					dialog_flow.acks.append(ack)
+					dialog_flow.ack_socket.send_multipart(
+						[responder_id, dialog_flow.response_header_invitation.to_wire()])
 			else: break
-		if (self.next): self.next.handle(request_process)
+		if (self.next): self.next.handle(dialog_flow)
 
 
 class ReceiveRespondResponseHeaders(ClientRequestStep):
 	def __init__(self, validate_header):
 		super(ReceiveRespondResponseHeaders, self).__init__()
+		if (validate_header is None): validate_header = validate_header_default
 		self.validate_header = validate_header
 
-	def handle(self, request_process):
-		response_header_response_ok = json.dumps({
-			"correlation_id" : request_process.correlation_id,
-			"status" : 100,
-			"response_content_endpoint" : request_process.response_content_endpoint
-		})
-		response_header_response_nok = json.dumps({
-			"correlation_id" : request_process.correlation_id,
-			"status" : 417
-		})
-		while (len(request_process.response_header_responses) < len(request_process.ack_responses)):
-			#response_header_response = None
-			if (request_process.response_header_socket.poll(request_process.response_header_timeout)):
-				response_header_responder = request_process.response_header_socket.recv_multipart()
-				response_header_responder_id = response_header_responder[0]
-				response_header_responder_content = json.loads(response_header_responder[1])
-				if (response_header_responder_content["correlation_id"] == request_process.correlation_id 
-						and self.validate_header(response_header_responder_content)):
-					request_process.response_header_responses.append(response_header_responder_content)
-					response_header_response = response_header_response_ok
+	def handle(self, dialog_flow):
+		while (len(dialog_flow.response_headers) < len(dialog_flow.acks)):
+			if (dialog_flow.response_header_socket.poll(dialog_flow.response_header_invitation.header["response_header_timeout"])):
+				responder_msg = dialog_flow.response_header_socket.recv_multipart()
+				responder_id = responder_msg[0]
+				header =  ResponseHeader.from_wire(responder_msg[1])
+				if (self.validate_header(header, dialog_flow.request)):
+					dialog_flow.response_headers.append(header)
+					response = dialog_flow.response_invitation_continue
 				else:
-					response_header_response = response_header_response_nok
-				request_process.response_header_socket.send_multipart([response_header_responder_id, response_header_response])
+					response = dialog_flow.response_invitation_dontcontinue
+				dialog_flow.response_header_socket.send_multipart \
+					([responder_id, response.to_wire()])
 			else: break
-		if (self.next): self.next.handle(request_process)
+		if (self.next): self.next.handle(dialog_flow)
 
 
-class ReceiveResponseContents(ClientRequestStep):
-	def __init__(self, on_reponse_received = None):
-		super(ReceiveResponseContents, self).__init__()
+class ReceiveResponses(ClientRequestStep):
+	def __init__(self, on_reponse_received, on_all_responses_received):
+		super(ReceiveResponses, self).__init__()
 		self.on_reponse_received = on_reponse_received
+		self.on_all_responses_received = on_all_responses_received
 
-	def handle(self, request_process):
-		while (len(request_process.response_content_responses) < len(request_process.ack_responses)):
-			if (request_process.response_content_socket.poll(request_process.response_content_timeout)):
-				response_content_responder = request_process.response_content_socket.recv_multipart()
-				response_content_responder_id = response_content_responder[0]
-				response_content_responder_header = json.loads(response_content_responder[1])
-				response_content_responder_content = response_content_responder[2]
-				if (response_content_responder_header["correlation_id"] == request_process.correlation_id):
-					request_process.response_content_responses.append(response_content_responder)
-					if (self.on_reponse_received): self.on_reponse_received(response_content_responder)
+	def handle(self, dialog_flow):
+		while (len(dialog_flow.responses) < len(dialog_flow.response_headers)):
+			if (dialog_flow.response_socket.poll(dialog_flow.response_invitation_continue.header["response_timeout"])):
+				responder_msg = dialog_flow.response_socket.recv_multipart()
+				responder_id = responder_msg[0]
+				response = Response.from_wire(responder_msg[1])
+				if (response.header["correlation_id"] == dialog_flow.request.header["correlation_id"]):
+					dialog_flow.responses.append(response)
+					if (self.on_reponse_received): self.on_reponse_received(response)
 			else: break
-		if (self.next): self.next.handle(request_process)
+		if (self.on_all_responses_received) : self.on_all_responses_received(dialog_flow.responses)
+		if (self.next): self.next.handle(dialog_flow)
 
 
-import pprint
+class RBProcolClient(object):
+	def __init__(self,
+				 search_endpoint_hostname,
+				 search_endpoint_port,
+				 ack_timeout,
+				 response_header_timeout,
+				 response_timeout,
+				 on_reponse_received,
+				 on_all_responses_received = None,
+				 validate_header = None):
 
-def validate_header(content):
-	return True
+		self.hostname = search_endpoint_hostname
+		self.set_dynamic_eps = SetDynamicEndpoints()
+		self.set_timeouts = SetTimeouts(ack_timeout, response_header_timeout, response_timeout)
+		self.request_broadcast = RequestBroadcast(search_endpoint_port)
+		self.handle_acks = ReceiveRespondAcks()
+		self.handle_response_headers = ReceiveRespondResponseHeaders(validate_header)
+		self.handle_response_content = ReceiveResponses(on_reponse_received, on_all_responses_received)
 
-pp = pprint.PrettyPrinter(indent=4)
+		self.set_dynamic_eps.set_next(self.set_timeouts)\
+			.set_next(self.request_broadcast)\
+			.set_next(self.handle_acks)\
+			.set_next(self.handle_response_headers)\
+			.set_next(self.handle_response_content)\
 
-def on_reponse_received(response):
-	pp.pprint(json.loads(response[2]))
-
-step1 = SetDynamicEndpoints("localhost")
-step2 = SetTimeouts(10, 5000, 5000)
-step3 = RequestBroadcast(5000)
-step4 = ReceiveRespondAcks()
-step5 = ReceiveRespondResponseHeaders(validate_header)
-step6 = ReceiveResponseContents(on_reponse_received)
-
-step1.set_next(step2)
-step2.set_next(step3)
-step3.set_next(step4)
-step4.set_next(step5)
-step5.set_next(step6)
-
-while True:
-	process = RequestProcess()
-	process.request_content = raw_input("enter request: ")
-	step1.handle(process)
+	def request(self, request):
+		dialog_flow = RequestDialogFlow(self.hostname, request)
+		self.set_dynamic_eps.handle(dialog_flow)
