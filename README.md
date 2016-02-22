@@ -46,9 +46,11 @@ The protocol as well as its implementation are still in very early stages.
 
 ## Usage Example
 
+### A Distributed Search Engine - Oh!
+
 The following example represents a very simple distributed search engine with two search nodes. One search node searches lines of a text file and the other searches on http://jsonplaceholder.typicode.com/posts/.
 
-### Client Node
+#### Client Node
 ```python
 import json
 from common import Request
@@ -81,7 +83,7 @@ while True:
 	client.request(request)
 ```
 
-### FileSearch Server Node
+#### FileSearch Server Node
 ```python
 import json
 from common import Response
@@ -118,13 +120,13 @@ Arguments are:
 	- the endpoint requests will be broadcast
 	- port of the requests broadcast endpoint
 	- time to wait in ms for the client node to reply during the protocol dialog
-	- the object that understands requests and transform them into responses (the thing that matters)
+	- the object that understands requests and transforms them into responses (the thing that matters)
 """
 server = RBProtocolServer(server_id, "localhost", 5000, 1000, search)
 server.start()
 ```
 
-### PostsSearch Server Node
+#### PostsSearch Server Node
 ```python
 import json
 from common import Response
