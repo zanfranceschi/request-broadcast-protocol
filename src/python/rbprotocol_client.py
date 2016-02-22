@@ -1,4 +1,3 @@
-#!/home/zanfranceschi/Projects/request-broadcast-protocol/src/python/virtenv/bin/python
 # -*- coding: utf-8 -*-
 
 import abc
@@ -27,12 +26,12 @@ class RequestDialogFlow(object):
 		self.response_invitation_continue = ResponseInvitationContinue(request)
 		self.response_invitation_dontcontinue = ResponseInvitationDontContinue(request)
 
-		#sockets
+		# sockets
 		self.ack_socket = None
 		self.response_header_socket = None
 		self.response_socket = None
 
-		#responses
+		# responses
 		self.acks = []
 		self.response_headers = []
 		self.responses = []
@@ -65,7 +64,8 @@ class SetDynamicEndpoints(ClientRequestStep):
 		self.response_endpoint = None
 
 	def _prepare_for_new_request(self, message, endpoint_name, hostname, socket):
-		if (socket.LAST_ENDPOINT): socket.unbind(socket.LAST_ENDPOINT)
+		if (socket.LAST_ENDPOINT):
+			socket.unbind(socket.LAST_ENDPOINT)
 		port = socket.bind_to_random_port("tcp://*")
 		message.header[endpoint_name] = "tcp://{}:{}".format(hostname, port)
 
@@ -76,14 +76,12 @@ class SetDynamicEndpoints(ClientRequestStep):
 		dialog_flow.ack_socket = self.ack_socket
 		dialog_flow.response_header_socket = self.response_header_socket
 		dialog_flow.response_socket = self.response_socket
-		if (self.next): self.next.handle(dialog_flow)
+		if (self.next):
+			self.next.handle(dialog_flow)
 
 
 class SetTimeouts(ClientRequestStep):
-	def __init__(self,
-				 ack_timeout,
-				 response_header_timeout,
-				 response_timeout):
+	def __init__(self, ack_timeout, response_header_timeout, response_timeout):
 		super(SetTimeouts, self).__init__()
 		self.ack_timeout = ack_timeout
 		self.response_header_timeout = response_header_timeout
@@ -93,7 +91,8 @@ class SetTimeouts(ClientRequestStep):
 		dialog_flow.request.header["ack_timeout"] = self.ack_timeout
 		dialog_flow.response_header_invitation.header["response_header_timeout"] = self.response_header_timeout
 		dialog_flow.response_invitation_continue.header["response_timeout"] = self.response_timeout
-		if (self.next): self.next.handle(dialog_flow)
+		if (self.next):
+			self.next.handle(dialog_flow)
 
 
 class RequestBroadcast(ClientRequestStep):
@@ -122,8 +121,10 @@ class ReceiveRespondAcks(ClientRequestStep):
 					dialog_flow.acks.append(ack)
 					dialog_flow.ack_socket.send_multipart(
 						[responder_id, dialog_flow.response_header_invitation.to_wire()])
-			else: break
-		if (self.next): self.next.handle(dialog_flow)
+			else:
+				break
+		if (self.next):
+			self.next.handle(dialog_flow)
 
 
 class ReceiveRespondResponseHeaders(ClientRequestStep):
@@ -137,39 +138,43 @@ class ReceiveRespondResponseHeaders(ClientRequestStep):
 			if (dialog_flow.response_header_socket.poll(dialog_flow.response_header_invitation.header["response_header_timeout"])):
 				responder_msg = dialog_flow.response_header_socket.recv_multipart()
 				responder_id = responder_msg[0]
-				header =  ResponseHeader.from_wire(responder_msg[1])
+				header = ResponseHeader.from_wire(responder_msg[1])
 				if (self.validate_header(header, dialog_flow.request)):
 					dialog_flow.response_headers.append(header)
 					response = dialog_flow.response_invitation_continue
 				else:
 					response = dialog_flow.response_invitation_dontcontinue
-				dialog_flow.response_header_socket.send_multipart \
-					([responder_id, response.to_wire()])
-			else: break
-		if (self.next): self.next.handle(dialog_flow)
+				dialog_flow.response_header_socket.send_multipart([responder_id, response.to_wire()])
+			else:
+				break
+		if (self.next):
+			self.next.handle(dialog_flow)
 
 
 class ReceiveResponses(ClientRequestStep):
-	def __init__(self, on_reponse_received, on_all_responses_received):
+	def __init__(self, on_response_received, on_all_responses_received):
 		super(ReceiveResponses, self).__init__()
-		self.on_reponse_received = on_reponse_received
+		self.on_response_received = on_response_received
 		self.on_all_responses_received = on_all_responses_received
 
 	def handle(self, dialog_flow):
 		while (len(dialog_flow.responses) < len(dialog_flow.response_headers)):
 			if (dialog_flow.response_socket.poll(dialog_flow.response_invitation_continue.header["response_timeout"])):
 				responder_msg = dialog_flow.response_socket.recv_multipart()
-				responder_id = responder_msg[0]
 				response = Response.from_wire(responder_msg[1])
 				if (response.header["correlation_id"] == dialog_flow.request.header["correlation_id"]):
 					dialog_flow.responses.append(response)
-					if (self.on_reponse_received): self.on_reponse_received(response)
-			else: break
-		if (self.on_all_responses_received) : self.on_all_responses_received(dialog_flow.responses)
-		if (self.next): self.next.handle(dialog_flow)
+					if (self.on_response_received):
+						self.on_response_received(response)
+			else:
+				break
+		if (self.on_all_responses_received):
+			self.on_all_responses_received(dialog_flow.responses)
+		if (self.next):
+			self.next.handle(dialog_flow)
 
 
-class RBProcolClient(object):
+class RBProtocolClient(object):
 	def __init__(self,
 				 search_endpoint_hostname,
 				 search_endpoint_port,
@@ -182,17 +187,18 @@ class RBProcolClient(object):
 
 		self.hostname = search_endpoint_hostname
 		self.set_dynamic_eps = SetDynamicEndpoints()
-		self.set_timeouts = SetTimeouts(ack_timeout, response_header_timeout, response_timeout)
-		self.request_broadcast = RequestBroadcast(search_endpoint_port)
-		self.handle_acks = ReceiveRespondAcks()
-		self.handle_response_headers = ReceiveRespondResponseHeaders(validate_header)
-		self.handle_response_content = ReceiveResponses(on_reponse_received, on_all_responses_received)
+		set_timeouts = SetTimeouts(ack_timeout, response_header_timeout, response_timeout)
+		request_broadcast = RequestBroadcast(search_endpoint_port)
+		handle_acks = ReceiveRespondAcks()
+		handle_response_headers = ReceiveRespondResponseHeaders(validate_header)
+		handle_response_content = ReceiveResponses(on_reponse_received, on_all_responses_received)
 
-		self.set_dynamic_eps.set_next(self.set_timeouts)\
-			.set_next(self.request_broadcast)\
-			.set_next(self.handle_acks)\
-			.set_next(self.handle_response_headers)\
-			.set_next(self.handle_response_content)\
+		self.set_dynamic_eps.set_next(set_timeouts)\
+			.set_next(request_broadcast)\
+			.set_next(handle_acks)\
+			.set_next(handle_response_headers)\
+			.set_next(handle_response_content)\
+
 
 	def request(self, request):
 		dialog_flow = RequestDialogFlow(self.hostname, request)

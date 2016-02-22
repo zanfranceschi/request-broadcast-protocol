@@ -2,6 +2,7 @@
 
 import uuid
 import json
+import re
 
 
 class Message(object):
@@ -10,17 +11,23 @@ class Message(object):
 		self.body = None
 
 	def to_wire(self):
-		return json.dumps({
-			"header" : self.header,
-			"body" : self.body
-		})
+		header = json.dumps(self.header)
+		wired_message = "{}{}{}".format(
+			len(header),
+			header,
+			self.body)
+		return wired_message
 
 	@classmethod
 	def from_wire(cls, wired_message):
-		obj = json.loads(wired_message)
+		matches = re.search('^(?P<header_len>[0-9]+)(?P<content>.+)', wired_message)
+		header_len = int(matches.group('header_len'))
+		content = matches.group('content')
+		header = json.loads(content[:header_len])
+		body = content[header_len:]
 		message = Message()
-		message.header = obj["header"]
-		message.body = obj["body"]
+		message.header = header
+		message.body = body
 		return message
 
 
@@ -29,15 +36,12 @@ class HeaderMessage(Message):
 		super(HeaderMessage, self).__init__()
 
 	def to_wire(self):
-		return json.dumps({
-			"header" : self.header
-		})
+		return json.dumps(self.header)
 
 	@classmethod
 	def from_wire(cls, wired_message):
-		obj = json.loads(wired_message)
 		message = HeaderMessage()
-		message.header = obj["header"]
+		message.header = json.loads(wired_message)
 		return message
 
 
@@ -119,9 +123,6 @@ class ResponseInvitationDontContinue(ResponseInvitation):
 			"response_endpoint" : None,
 			"response_timeout" : 0
 		}
-
-
-
 
 
 class Response(Message, ServerMessage):

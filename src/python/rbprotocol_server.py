@@ -1,9 +1,19 @@
-#!/home/zanfranceschi/Projects/request-broadcast-protocol/src/python/virtenv/bin/python
 # -*- coding: utf-8 -*-
 
 import abc
 import zmq
 from common import *
+
+
+class RequestResponder(object):
+	__metaclass__ = abc.ABCMeta
+
+	def __init__(self, server_id):
+		self.server_id = server_id
+
+	@abc.abstractmethod
+	def respond(self, request):
+		return
 
 
 class ResponseDialogFlow(object):
@@ -12,6 +22,7 @@ class ResponseDialogFlow(object):
 		self.response = None
 		self.response_header_invitation = None
 		self.response_invitation = None
+		self.timed_out = False
 
 
 class ServerResponseStep(object):
@@ -23,10 +34,19 @@ class ServerResponseStep(object):
 
 	def set_next(self, step):
 		self.next = step
+		return step
 
 	@abc.abstractmethod
 	def handle(self, dialog_flow):
 		pass
+
+
+class WaitingServerResponseStep(ServerResponseStep):
+	__metaclass__ = abc.ABCMeta
+
+	def __init__(self, server_id, timeout):
+		super(WaitingServerResponseStep, self).__init__(server_id)
+		self.timeout = timeout
 
 
 class Accept(ServerResponseStep):
@@ -38,59 +58,61 @@ class Accept(ServerResponseStep):
 		self.socket.connect("tcp://{}:{}".format(hostname, port))
 
 	def handle(self, dialog_flow):
-		print "Accepting..."
+		dialog_flow = ResponseDialogFlow()
 		request_message = self.socket.recv_multipart()
 		dialog_flow.request = Request.from_wire(request_message[0])
-		if (self.next): self.next.handle(dialog_flow)
+		if (self.next):
+			self.next.handle(dialog_flow)
 
 
-class SendAckReceiveResponseHeaderInvitation(ServerResponseStep):
-	def __init__(self, server_id):
-		super(SendAckReceiveResponseHeaderInvitation, self).__init__(server_id)
+class SendAckReceiveResponseHeaderInvitation(WaitingServerResponseStep):
+	def __init__(self, server_id, timeout):
+		super(SendAckReceiveResponseHeaderInvitation, self).__init__(server_id, timeout)
 		self.context = zmq.Context.instance()
 		self.socket = self.context.socket(zmq.DEALER)
 
 	def handle(self, dialog_flow):
-		self.socket.connect(dialog_flow.request.header["ack_endpoint"])
-		self.socket.send(Ack(dialog_flow.request, self.server_id).to_wire())
-		dialog_flow.response_header_invitation = ResponseHeaderInvitation.from_wire(self.socket.recv())
-		self.socket.disconnect(self.socket.LAST_ENDPOINT)
-		if (self.next): self.next.handle(dialog_flow)
+		if (not dialog_flow.timed_out):
+			self.socket.connect(dialog_flow.request.header["ack_endpoint"])
+			self.socket.send(Ack(dialog_flow.request, self.server_id).to_wire())
+			if (self.socket.poll(self.timeout)):
+				dialog_flow.response_header_invitation = ResponseHeaderInvitation.from_wire(self.socket.recv())
+			else:
+				dialog_flow.timed_out = True
+			self.socket.disconnect(self.socket.LAST_ENDPOINT)
+		if (self.next):
+			self.next.handle(dialog_flow)
 
 
-class Search(ServerResponseStep):
-	def __init__(self, server_id):
-		super(Search, self).__init__(server_id)
+class CreateResponse(ServerResponseStep):
+	def __init__(self, server_id, request_responder):
+		super(CreateResponse, self).__init__(server_id)
+		self.request_responder = request_responder
 
 	def handle(self, dialog_flow):
-		q = dialog_flow.request.body.lower().strip()
-		with open("db.txt") as f:
-			lines = f.readlines()
-			result = [{ 
-				"description" : line.strip(),
-				"category" : "fileContent",
-				"location" : "db.txt@localhot"
-				} for line in lines if q in line.lower().strip()]
-		dialog_flow.response = Response(
-			dialog_flow.request.header["correlation_id"],
-			self.server_id,
-			"application/json;utf-8",
-			result)
-		if (self.next): self.next.handle(dialog_flow)
+		if (not dialog_flow.timed_out):
+			dialog_flow.response = self.request_responder.respond(dialog_flow.request)
+		if (self.next):
+			self.next.handle(dialog_flow)
 
 
-class SendResponseHeaderReceiveResponseInvitation(ServerResponseStep):
-	def __init__(self, server_id):
-		super(SendResponseHeaderReceiveResponseInvitation, self).__init__(server_id)
+class SendResponseHeaderReceiveResponseInvitation(WaitingServerResponseStep):
+	def __init__(self, server_id, timeout):
+		super(SendResponseHeaderReceiveResponseInvitation, self).__init__(server_id, timeout)
 		self.context = zmq.Context.instance()
 		self.socket = self.context.socket(zmq.DEALER)
 
 	def handle(self, dialog_flow):
-		self.socket.connect(dialog_flow.response_header_invitation.header["response_header_endpoint"])
-		self.socket.send(ResponseHeader(dialog_flow.response).to_wire())
-		dialog_flow.response_invitation = ResponseInvitation.from_wire(self.socket.recv())
-		self.socket.disconnect(self.socket.LAST_ENDPOINT)
-		if (self.next): self.next.handle(dialog_flow)
+		if (not dialog_flow.timed_out):
+			self.socket.connect(dialog_flow.response_header_invitation.header["response_header_endpoint"])
+			self.socket.send(ResponseHeader(dialog_flow.response).to_wire())
+			if (self.socket.poll(self.timeout)):
+				dialog_flow.response_invitation = ResponseInvitation.from_wire(self.socket.recv())
+			else:
+				dialog_flow.timed_out = True
+			self.socket.disconnect(self.socket.LAST_ENDPOINT)
+		if (self.next):
+			self.next.handle(dialog_flow)
 
 
 class TrySendResponseContent(ServerResponseStep):
@@ -100,27 +122,28 @@ class TrySendResponseContent(ServerResponseStep):
 		self.socket = self.context.socket(zmq.DEALER)
 
 	def handle(self, dialog_flow):
-		if (dialog_flow.response_invitation.header["status"] == 100):
+		if (not dialog_flow.timed_out and dialog_flow.response_invitation.header["status"] == 100):
 			self.socket.connect(dialog_flow.response_invitation.header["response_endpoint"])
 			self.socket.send(dialog_flow.response.to_wire())
 			self.socket.disconnect(self.socket.LAST_ENDPOINT)
-			print dialog_flow.response.to_wire()
-		if (self.next): self.next.handle(dialog_flow)
+		if (self.next):
+			self.next.handle(dialog_flow)
 
 
-server_id = "teste"
+class RBProtocolServer(object):
+	def __init__(self, server_id, connect_to_host, connect_to_port, client_timeout, request_responder):
+		self.server_id = server_id
+		self.accept = Accept(server_id, connect_to_host, connect_to_port)
+		handle_acks = SendAckReceiveResponseHeaderInvitation(server_id, client_timeout)
+		create_response = CreateResponse(server_id, request_responder)
+		send_header = SendResponseHeaderReceiveResponseInvitation(server_id, client_timeout)
+		try_send_response = TrySendResponseContent(server_id)
 
-step1 = Accept(server_id, "localhost", 5000)
-step2 = SendAckReceiveResponseHeaderInvitation(server_id)
-step3 = Search(server_id)
-step4 = SendResponseHeaderReceiveResponseInvitation(server_id)
-step5 = TrySendResponseContent(server_id)
+		self.accept.set_next(handle_acks)\
+			.set_next(create_response)\
+			.set_next(send_header)\
+			.set_next(try_send_response)\
+			.set_next(self.accept)
 
-step1.set_next(step2)
-step2.set_next(step3)
-step3.set_next(step4)
-step4.set_next(step5)
-step5.set_next(step1)
-
-dialog_flow = ResponseDialogFlow()
-step1.handle(dialog_flow)
+	def start(self):
+		self.accept.handle(None)
