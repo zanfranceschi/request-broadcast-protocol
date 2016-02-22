@@ -161,6 +161,6 @@ server = RBProtocolServer(server_id, "localhost", 5000, 1000, search)
 server.start()
 ```
 
-If you run the three parts, you'll have the client broadcasting requests and receiving responses from two "stange" servers.
+If you run the three parts, you'll have the client broadcasting requests and receiving responses from two "strange" servers.
 
 If you have a question, comment, or anything else, please leave me a note at zanfranceschi[@]gmail.com -- I'll be glad to reply.
