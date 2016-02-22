@@ -43,3 +43,122 @@ I wanted to build a search engine capable of searching into different and unstru
 ## Protocol Status
 
 The protocol as well as its implementation are still in very early stages.
+
+## Usage Example
+
+The following example represents a very simple distributed search engine with two search nodes. One search node searches lines of a text file and the other searches on http://jsonplaceholder.typicode.com/posts/.
+
+### Client Node
+```python
+import json
+from common import Request
+from rbprotocol_client import RBProtocolClient
+
+
+def search_callback(response):
+	# create the response callback
+	# for each response, this will be invoked
+	results = json.loads(response.body)
+	for result in results:
+		print "{}: {}".format(response.header["id"], result["description"])
+
+"""
+The client node
+Arguments are:
+	- endpoint to broadcast requests
+	- port to bind
+	- ack timeout
+	- header timeout
+	- response timeout
+	- response received callback
+"""
+client = RBProtocolClient("localhost", 5000, 10, 2500, 100, search_callback)
+
+# start the client node
+while True:
+	search = raw_input("enter your search term: ")
+	request = Request("application/json", "utf-8", search)
+	client.request(request)
+```
+
+### FileSearch Server Node
+```python
+import json
+from common import Response
+from rbprotocol_server import RequestResponder, RBProtocolServer
+
+
+class FileSearch(RequestResponder):
+	def __init__(self, server_id):
+		super(FileSearch, self).__init__(server_id)
+
+	def respond(self, request):
+		q = request.body.lower().strip()
+		with open("db.txt") as f:
+			lines = f.readlines()
+			result = [{
+				"description" : line.strip(),
+				"category" : "fileContent",
+				"location" : "db.txt"
+				} for line in lines if q in line.lower().strip()]
+		response = Response(
+			request.header["correlation_id"],
+			self.server_id,
+			"application/json;utf-8",
+			json.dumps(result))
+		return response
+
+
+# instantiate and start the server
+server_id = "db.txt search"
+search = FileSearch(server_id)
+"""
+Arguments are:
+	- the server identification
+	- the endpoint requests will be broadcast
+	- port of the requests broadcast endpoint
+	- time to wait in ms for the client node to reply during the protocol dialog
+	- the object that understands requests and transform them into responses (the thing that matters)
+"""
+server = RBProtocolServer(server_id, "localhost", 5000, 1000, search)
+server.start()
+```
+
+### PostsSearch Server Node
+```python
+import json
+from common import Response
+from rbprotocol_server import RequestResponder, RBProtocolServer
+import requests
+
+
+class PostsSearch(RequestResponder):
+	def __init__(self, server_id):
+		super(PostsSearch, self).__init__(server_id)
+
+	def respond(self, request):
+		r = requests.get("http://jsonplaceholder.typicode.com/posts/")
+		posts = json.loads(r.text)
+		q = request.body.lower().strip()
+		result = [{
+			"description" : post["title"],
+			"category" : "post",
+			"location" : "http://jsonplaceholder.typicode.com/posts/"
+		} for post in posts if q in post["title"].lower()]
+		response = Response(
+			request.header["correlation_id"],
+			self.server_id,
+			"application/json;utf-8",
+			json.dumps(result))
+		return response
+		
+# instantiate and start the server
+server_id = "posts search"
+search = PostsSearch(server_id)
+server = RBProtocolServer(server_id, "localhost", 5000, 1000, search)
+server.start()
+```
+
+If you run the three parts, you'll have the client broadcasting requests and receiving responses from two "stange" servers.
+
+If you have a question, comment, or anything else, please leave me a note at zanfranceschi[@]gmail.com -- I'll be glad to reply.
