@@ -5,10 +5,10 @@ The Request Broadcast Protocol (RBP) is a high level protocol designed to work w
 
 ## Motivation
 
-I wanted to build a search engine capable of searching into different and unstructured metada such as objects database tables, application deployments, code repositories, etc. The main challenge of such search engine were more about how to design such disparate components to colaborate than implementing the individual components search. I found the architecture interesting enough to elaborate this high level protocol.
+I wanted to build a search engine capable of searching into different and unstructured metada such as objects database tables, application deployments, code repositories, etc. The main challenge of such search engine was more about how to design such disparate components to colaborate than implementing the individual components search. I found the architecture interesting enough to elaborate this high level protocol.
 
 
-## High Level Flow
+## High Level Protocol Dialog
 
 - Client broadcasts (publishes in a pub/sub fashion) a request with an ack random endpoint
 - Servers receive the request notification and acks back to client
@@ -17,6 +17,9 @@ I wanted to build a search engine capable of searching into different and unstru
 - For each received response header, client checks it and responds with a "send response body to" (status 100) random endpoint if the response header is satisfactory, or responds with a 417 status (not satisfactory header response)
 - Servers receive the "send response body to" and send the response body to client
 - Finally, client receives response bodies from all available servers
+
+The random endpoints are meant to avoid slow servers responding late to client with stale responses.
+
 
 ```
 +------------+ 								      	  +------------+
