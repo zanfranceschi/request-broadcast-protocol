@@ -2,7 +2,7 @@
 
 import abc
 import zmq
-from common import *
+from messages import *
 
 
 class RequestResponder(object):
@@ -130,7 +130,7 @@ class TrySendResponseContent(ServerResponseStep):
 			self.next.handle(dialog_flow)
 
 
-class RBProtocolServer(object):
+class Server(object):
 	def __init__(self, server_id, connect_to_host, connect_to_port, client_timeout, request_responder):
 		self.server_id = server_id
 		self.accept = Accept(server_id, connect_to_host, connect_to_port)

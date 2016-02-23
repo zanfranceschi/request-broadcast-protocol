@@ -21,8 +21,8 @@ def server_example():
 	collaborative nature of the Request Broadcast Protocol
 	"""
 	import json
-	from common import Response
-	from rbprotocol_server import RequestResponder, RBProtocolServer
+	from rbprotocol.messages import Response
+	from rbprotocol.server import RequestResponder, Server
 	import requests
 	import thread
 
@@ -69,13 +69,13 @@ def server_example():
 	def db_txt_search():
 		server_id = "db.txt search"
 		search = FileSearch(server_id)
-		server = RBProtocolServer(server_id, "localhost", 5000, 1000, search)
+		server = Server(server_id, "localhost", 5000, 1000, search)
 		server.start()
 
 	def posts_search():
 		server_id = "posts search"
 		search = PostsSearch(server_id)
-		server = RBProtocolServer(server_id, "localhost", 5000, 1000, search)
+		server = Server(server_id, "localhost", 5000, 1000, search)
 		server.start()
 
 	thread.start_new(db_txt_search, ())
@@ -89,8 +89,8 @@ def client_example():
 	Very simple client usage example
 	"""
 	import json
-	from common import Request
-	from rbprotocol_client import RBProtocolClient
+	from rbprotocol.messages import Request
+	from rbprotocol.client import Client
 
 	def search_callback(response):
 		results = json.loads(response.body)
@@ -101,10 +101,7 @@ def client_example():
 		for response in responses:
 			print "{}: {} results".format(response.header["id"], len(json.loads(response.body)))
 
-	def validate_header(header):
-		return True
-
-	client = RBProtocolClient("localhost", 5000, 10, 2500, 100, search_callback, all_received)
+	client = Client("localhost", 5000, 10, 2500, 100, search_callback, all_received)
 
 	while True:
 		search = raw_input("enter your search term: ")

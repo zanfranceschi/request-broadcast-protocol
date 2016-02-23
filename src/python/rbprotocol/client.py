@@ -2,7 +2,7 @@
 
 import abc
 import zmq
-from common import *
+from messages import *
 
 
 def is_valid_response(response, request):
@@ -174,16 +174,16 @@ class ReceiveResponses(ClientRequestStep):
 			self.next.handle(dialog_flow)
 
 
-class RBProtocolClient(object):
+class Client(object):
 	def __init__(self,
-				 search_endpoint_hostname,
-				 search_endpoint_port,
-				 ack_timeout,
-				 response_header_timeout,
-				 response_timeout,
-				 on_reponse_received,
-				 on_all_responses_received = None,
-				 validate_header = None):
+				search_endpoint_hostname,
+				search_endpoint_port,
+				ack_timeout,
+				response_header_timeout,
+				response_timeout,
+				on_reponse_received,
+				on_all_responses_received=None,
+				validate_header=None):
 
 		self.hostname = search_endpoint_hostname
 		self.set_dynamic_eps = SetDynamicEndpoints()
