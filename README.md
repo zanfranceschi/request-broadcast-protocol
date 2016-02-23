@@ -138,22 +138,23 @@ import requests
 class PostsSearch(RequestResponder):
 	def __init__(self, server_id):
 		super(PostsSearch, self).__init__(server_id)
+		r = requests.get("http://jsonplaceholder.typicode.com/posts/")
+		self.posts = json.loads(r.text)
 
 	def respond(self, request):
-		r = requests.get("http://jsonplaceholder.typicode.com/posts/")
-		posts = json.loads(r.text)
 		q = request.body.lower().strip()
 		result = [{
 			"description" : post["title"],
 			"category" : "post",
 			"location" : "http://jsonplaceholder.typicode.com/posts/"
-		} for post in posts if q in post["title"].lower()]
+		} for post in self.posts if q in post["title"].lower()]
 		response = Response(
 			request.header["correlation_id"],
 			self.server_id,
 			"application/json;utf-8",
 			json.dumps(result))
 		return response
+
 		
 # instantiate and start the server
 server_id = "posts search"
@@ -162,6 +163,6 @@ server = Server(server_id, "localhost", 5000, 1000, search)
 server.start()
 ```
 
-If you run the three parts, you'll have the client broadcasting requests and receiving responses from two "strange" servers.
+If you run the three parts, you'll have the client broadcasting requests and receiving responses from two "strange" servers (blazingly fast ;).
 
 If you have a question, comment, or anything else, please leave me a note at zanfranceschi[@]gmail.com -- I'll be glad to reply.

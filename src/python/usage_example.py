@@ -49,16 +49,16 @@ def server_example():
 	class PostsSearch(RequestResponder):
 		def __init__(self, server_id):
 			super(PostsSearch, self).__init__(server_id)
+			r = requests.get("http://jsonplaceholder.typicode.com/posts/")
+			self.posts = json.loads(r.text)
 
 		def respond(self, request):
-			r = requests.get("http://jsonplaceholder.typicode.com/posts/")
-			posts = json.loads(r.text)
 			q = request.body.lower().strip()
 			result = [{
 				"description" : post["title"],
 				"category" : "post",
 				"location" : "http://jsonplaceholder.typicode.com/posts/"
-			} for post in posts if q in post["title"].lower()]
+			} for post in self.posts if q in post["title"].lower()]
 			response = Response(
 				request.header["correlation_id"],
 				self.server_id,
@@ -98,10 +98,12 @@ def client_example():
 			print "{}: {}".format(response.header["id"], result["description"])
 
 	def all_received(responses):
+		print "-" * 50
 		for response in responses:
 			print "{}: {} results".format(response.header["id"], len(json.loads(response.body)))
+		print "-" * 50
 
-	client = Client("localhost", 5000, 10, 2500, 100, search_callback, all_received)
+	client = Client("localhost", 5000, 10, 1000, 100, search_callback, all_received)
 
 	while True:
 		search = raw_input("enter your search term: ")
