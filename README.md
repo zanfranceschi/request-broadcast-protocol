@@ -18,7 +18,7 @@ I wanted to build a search engine capable of searching into different and unstru
 - Servers receive the "send response body to" and send the response body to client
 - Finally, client receives response bodies from all available servers
 
-The random endpoints are meant to avoid slow servers responding late to client with stale responses.
+The random endpoints are meant to avoid slow servers responding late to client with stale responses. This randomness is a problem in firewalled and/or port restricted environments. Perhaps simply dealing with slow servers is simpler and worth.
 
 
 ```
