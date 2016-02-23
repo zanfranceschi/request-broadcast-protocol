@@ -53,8 +53,8 @@ The following example represents a very simple distributed search engine with tw
 #### Client Node
 ```python
 import json
-from common import Request
-from rbprotocol_client import RBProtocolClient
+from rbprotocol.messages import Request
+from rbprotocol.client import Client
 
 
 def search_callback(response):
@@ -74,7 +74,7 @@ Arguments are:
 	- response timeout
 	- response received callback
 """
-client = RBProtocolClient("localhost", 5000, 10, 2500, 100, search_callback)
+client = Client("localhost", 5000, 10, 2500, 100, search_callback)
 
 # start the client node
 while True:
@@ -86,8 +86,8 @@ while True:
 #### FileSearch Server Node
 ```python
 import json
-from common import Response
-from rbprotocol_server import RequestResponder, RBProtocolServer
+from rbprotocol.messages import Response
+from rbprotocol.server import RequestResponder, Server
 
 
 class FileSearch(RequestResponder):
@@ -122,15 +122,15 @@ Arguments are:
 	- time to wait in ms for the client node to reply during the protocol dialog
 	- the object that understands requests and transforms them into responses (the thing that matters)
 """
-server = RBProtocolServer(server_id, "localhost", 5000, 1000, search)
+server = Server(server_id, "localhost", 5000, 1000, search)
 server.start()
 ```
 
 #### PostsSearch Server Node
 ```python
 import json
-from common import Response
-from rbprotocol_server import RequestResponder, RBProtocolServer
+from rbprotocol.messages import Response
+from rbprotocol.server import RequestResponder, Server
 import requests
 
 
@@ -157,7 +157,7 @@ class PostsSearch(RequestResponder):
 # instantiate and start the server
 server_id = "posts search"
 search = PostsSearch(server_id)
-server = RBProtocolServer(server_id, "localhost", 5000, 1000, search)
+server = Server(server_id, "localhost", 5000, 1000, search)
 server.start()
 ```
 
