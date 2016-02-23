@@ -10,8 +10,7 @@ def is_valid_response(response, request):
 
 
 def validate_header_default(response, request):
-	valid = response.header["correlation_id"] == request.header["correlation_id"]\
-			and request.header["accept"].lower() in response.header["content_type"].lower()\
+	valid = request.header["accept"].lower() in response.header["content_type"].lower()\
 			and request.header["accept_charset"].lower() in response.header["content_type"].lower()
 	return valid
 
@@ -153,7 +152,7 @@ class ReceiveRespondResponseHeaders(ClientRequestStep):
 				responder_msg = dialog_flow.response_header_socket.recv_multipart()
 				responder_id = responder_msg[0]
 				header = ResponseHeader.from_wire(responder_msg[1])
-				if (self.validate_header(header, dialog_flow.request)):
+				if (header.header["correlation_id"] == dialog_flow.request.header["correlation_id"] and self.validate_header(header, dialog_flow.request)):
 					dialog_flow.response_headers.append(header)
 					response = dialog_flow.response_invitation_continue
 				else:
