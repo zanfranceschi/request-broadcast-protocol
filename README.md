@@ -84,6 +84,7 @@ while True:
 ```
 
 #### FileSearch Server Node
+You can use this [db.txt](src/python/db.txt) mentioned in the example below.
 ```python
 import json
 from rbprotocol.messages import Response
