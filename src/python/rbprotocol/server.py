@@ -34,7 +34,7 @@ class ServerResponseStep(object):
 
 	def set_next(self, step):
 		self.next = step
-		return step
+		return self.next
 
 	@abc.abstractmethod
 	def handle(self, dialog_flow):
@@ -126,7 +126,7 @@ class TrySendResponseContent(ServerResponseStep):
 			self.socket.connect(dialog_flow.response_invitation.header["response_endpoint"])
 			self.socket.send(dialog_flow.response.to_wire())
 			self.socket.disconnect(self.socket.LAST_ENDPOINT)
-		if (self.next):
+		if (self.next is not None):
 			self.next.handle(dialog_flow)
 
 

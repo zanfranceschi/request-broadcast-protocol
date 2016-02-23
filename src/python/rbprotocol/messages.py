@@ -70,8 +70,8 @@ class Ack(HeaderMessage, ServerMessage):
 	def __init__(self, request, id):
 		super(Ack, self).__init__()
 		self.header = {
-			"correlation_id" : request.header["correlation_id"],
-			"id" : id
+			"correlation_id": request.header["correlation_id"],
+			"id": id
 		}
 
 	def is_valid(self):
@@ -79,12 +79,12 @@ class Ack(HeaderMessage, ServerMessage):
 
 
 class ResponseHeaderInvitation(HeaderMessage, ClientMessage):
-	def __init__(self, request, response_header_endpoint = None, response_header_timeout = None):
+	def __init__(self, request, response_header_endpoint=None, response_header_timeout=None):
 		super(ResponseHeaderInvitation, self).__init__()
 		self.header = {
-			"correlation_id" : request.header["correlation_id"],
-			"response_header_endpoint" : response_header_endpoint,
-			"response_header_timeout" : response_header_timeout,
+			"correlation_id": request.header["correlation_id"],
+			"response_header_endpoint": response_header_endpoint,
+			"response_header_timeout": response_header_timeout,
 		}
 
 
@@ -92,10 +92,10 @@ class ResponseHeader(HeaderMessage, ServerMessage):
 	def __init__(self, response):
 		super(ResponseHeader, self).__init__()
 		self.header = {
-			"correlation_id"	: response.header["correlation_id"],
-			"id"				: response.header["id"],
-			"content_length"	: response.header["content_length"],
-			"content_type"		: response.header["content_type"]
+			"correlation_id": response.header["correlation_id"],
+			"id": response.header["id"],
+			"content_length": response.header["content_length"],
+			"content_type": response.header["content_type"]
 		}
 
 
@@ -107,10 +107,10 @@ class ResponseInvitationContinue(ResponseInvitation):
 	def __init__(self, request):
 		super(ResponseInvitationContinue, self).__init__()
 		self.header = {
-			"correlation_id" : request.header["correlation_id"],
-			"status" : 100,
-			"response_endpoint" : None,
-			"response_timeout" : 0
+			"correlation_id": request.header["correlation_id"],
+			"status": 100,
+			"response_endpoint": None,
+			"response_timeout": 0
 		}
 
 
@@ -118,10 +118,10 @@ class ResponseInvitationDontContinue(ResponseInvitation):
 	def __init__(self, request):
 		super(ResponseInvitationDontContinue, self).__init__()
 		self.header = {
-			"correlation_id" : request.header["correlation_id"],
-			"status" : 417,
-			"response_endpoint" : None,
-			"response_timeout" : 0
+			"correlation_id": request.header["correlation_id"],
+			"status": 417,
+			"response_endpoint": None,
+			"response_timeout": 0
 		}
 
 
@@ -129,9 +129,9 @@ class Response(Message, ServerMessage):
 	def __init__(self, correlation_id, server_id, content_type, body):
 		super(Response, self).__init__()
 		self.header = {
-			"correlation_id"	: correlation_id,
-			"id"				: server_id,
-			"content_length"	: len(body),
-			"content_type"		: content_type
+			"correlation_id": correlation_id,
+			"id": server_id,
+			"content_length": len(body),
+			"content_type": content_type
 		}
 		self.body = body

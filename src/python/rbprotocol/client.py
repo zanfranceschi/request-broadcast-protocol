@@ -63,20 +63,33 @@ class SetDynamicEndpoints(ClientRequestStep):
 		self.response_header_endpoint = None
 		self.response_endpoint = None
 
-	def _prepare_for_new_request(self, message, endpoint_name, hostname, socket):
+	@classmethod
+	def _prepare_for_new_request(cls, message, endpoint_name, hostname, socket):
 		if (socket.LAST_ENDPOINT):
 			socket.unbind(socket.LAST_ENDPOINT)
 		port = socket.bind_to_random_port("tcp://*")
 		message.header[endpoint_name] = "tcp://{}:{}".format(hostname, port)
 
 	def handle(self, dialog_flow):
-		self._prepare_for_new_request(dialog_flow.request, "ack_endpoint", dialog_flow.hostname, self.ack_socket)
-		self._prepare_for_new_request(dialog_flow.response_header_invitation, "response_header_endpoint", dialog_flow.hostname, self.response_header_socket)
-		self._prepare_for_new_request(dialog_flow.response_invitation_continue, "response_endpoint", dialog_flow.hostname, self.response_socket)
+		self._prepare_for_new_request(
+			dialog_flow.request,
+			"ack_endpoint",
+			dialog_flow.hostname,
+			self.ack_socket)
+		self._prepare_for_new_request(
+			dialog_flow.response_header_invitation,
+			"response_header_endpoint",
+			dialog_flow.hostname,
+			self.response_header_socket)
+		self._prepare_for_new_request(
+			dialog_flow.response_invitation_continue,
+			"response_endpoint",
+			dialog_flow.hostname,
+			self.response_socket)
 		dialog_flow.ack_socket = self.ack_socket
 		dialog_flow.response_header_socket = self.response_header_socket
 		dialog_flow.response_socket = self.response_socket
-		if (self.next):
+		if (self.next is not None):
 			self.next.handle(dialog_flow)
 
 
@@ -91,7 +104,7 @@ class SetTimeouts(ClientRequestStep):
 		dialog_flow.request.header["ack_timeout"] = self.ack_timeout
 		dialog_flow.response_header_invitation.header["response_header_timeout"] = self.response_header_timeout
 		dialog_flow.response_invitation_continue.header["response_timeout"] = self.response_timeout
-		if (self.next):
+		if (self.next is not None):
 			self.next.handle(dialog_flow)
 
 
@@ -104,7 +117,8 @@ class RequestBroadcast(ClientRequestStep):
 
 	def handle(self, dialog_flow):
 		self.request_socket.send(dialog_flow.request.to_wire())
-		if (self.next): self.next.handle(dialog_flow)
+		if (self.next is not None):
+			self.next.handle(dialog_flow)
 
 
 class ReceiveRespondAcks(ClientRequestStep):
@@ -123,7 +137,7 @@ class ReceiveRespondAcks(ClientRequestStep):
 						[responder_id, dialog_flow.response_header_invitation.to_wire()])
 			else:
 				break
-		if (self.next):
+		if (self.next is not None):
 			self.next.handle(dialog_flow)
 
 
@@ -147,7 +161,7 @@ class ReceiveRespondResponseHeaders(ClientRequestStep):
 				dialog_flow.response_header_socket.send_multipart([responder_id, response.to_wire()])
 			else:
 				break
-		if (self.next):
+		if (self.next is not None):
 			self.next.handle(dialog_flow)
 
 
@@ -170,20 +184,20 @@ class ReceiveResponses(ClientRequestStep):
 				break
 		if (self.on_all_responses_received):
 			self.on_all_responses_received(dialog_flow.responses)
-		if (self.next):
+		if (self.next is not None):
 			self.next.handle(dialog_flow)
 
 
 class Client(object):
 	def __init__(self,
-				search_endpoint_hostname,
-				search_endpoint_port,
-				ack_timeout,
-				response_header_timeout,
-				response_timeout,
-				on_reponse_received,
-				on_all_responses_received=None,
-				validate_header=None):
+		search_endpoint_hostname,
+		search_endpoint_port,
+		ack_timeout,
+		response_header_timeout,
+		response_timeout,
+		on_reponse_received,
+		on_all_responses_received=None,
+		validate_header=None):
 
 		self.hostname = search_endpoint_hostname
 		self.set_dynamic_eps = SetDynamicEndpoints()
