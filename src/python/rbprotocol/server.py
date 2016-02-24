@@ -3,6 +3,7 @@
 import abc
 import zmq
 from messages import *
+from rbprotocol import checktypes
 
 
 class RequestResponder(object):
@@ -131,6 +132,7 @@ class TrySendResponseContent(ServerResponseStep):
 
 
 class Server(object):
+	@checktypes(basestring, basestring, int, int, RequestResponder)
 	def __init__(self, server_id, connect_to_host, connect_to_port, client_timeout, request_responder):
 		self.server_id = server_id
 		self.accept = Accept(server_id, connect_to_host, connect_to_port)

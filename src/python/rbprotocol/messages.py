@@ -3,6 +3,7 @@
 import uuid
 import json
 import re
+from rbprotocol import checktypes
 
 
 class Message(object):
@@ -54,6 +55,7 @@ class ServerMessage(object):
 
 
 class Request(Message, ClientMessage):
+	@checktypes(basestring, basestring, buffer)
 	def __init__(self, accept, accept_charset, body):
 		super(Request, self).__init__()
 		self.header = {
@@ -73,9 +75,6 @@ class Ack(HeaderMessage, ServerMessage):
 			"correlation_id": request.header["correlation_id"],
 			"id": id
 		}
-
-	def is_valid(self):
-		return
 
 
 class ResponseHeaderInvitation(HeaderMessage, ClientMessage):
@@ -126,6 +125,7 @@ class ResponseInvitationDontContinue(ResponseInvitation):
 
 
 class Response(Message, ServerMessage):
+	@checktypes(basestring, basestring, basestring, buffer)
 	def __init__(self, correlation_id, server_id, content_type, body):
 		super(Response, self).__init__()
 		self.header = {

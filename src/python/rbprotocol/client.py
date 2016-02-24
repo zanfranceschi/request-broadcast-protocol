@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from rbprotocol import checktypes
+from types import FunctionType
 import abc
 import zmq
 from messages import *
@@ -188,6 +190,8 @@ class ReceiveResponses(ClientRequestStep):
 
 
 class Client(object):
+	@checktypes(basestring, int, int, int, int, FunctionType, FunctionType, FunctionType,
+	            on_all_responses_received=FunctionType, validate_header=FunctionType)
 	def __init__(self,
 		search_endpoint_hostname,
 		search_endpoint_port,
@@ -213,6 +217,7 @@ class Client(object):
 			.set_next(handle_response_content)\
 
 
+	@checktypes(Request)
 	def request(self, request):
 		dialog_flow = RequestDialogFlow(self.hostname, request)
 		self.set_dynamic_eps.handle(dialog_flow)

@@ -103,7 +103,7 @@ def client_example():
 			print "{}: {} results".format(response.header["id"], len(json.loads(response.body)))
 		print "-" * 50
 
-	client = Client("localhost", 5000, 10, 1000, 100, search_callback, all_received)
+	client = Client('localhost', 5000, 10, 1000, 100, search_callback, all_received)
 
 	while True:
 		search = raw_input("enter your search term: ")
