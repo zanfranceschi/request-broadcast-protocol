@@ -1,6 +1,6 @@
 # Request Broadcast Protocol
 
-The Request Broadcast Protocol (RBP) is a high level protocol designed to work with clients and multiple servers whose existence is not known. 
+The Request Broadcast Protocol (RBP) is a high level protocol designed to work with clients and multiple servers whose existence is not known. It's largely based on the Blackboard architectural principle (https://en.wikipedia.org/wiki/Blackboard_(design_pattern)). This protocol is ideal to work with diverse data handled by specialized nodes.
 
 
 ## Motivation
