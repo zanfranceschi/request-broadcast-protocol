@@ -61,7 +61,7 @@ class Accept(ServerResponseStep):
 	def handle(self, dialog_flow):
 		dialog_flow = ResponseDialogFlow()
 		request_message = self.socket.recv_multipart()
-		dialog_flow.request = Request.from_wire(request_message[0])
+		dialog_flow.request = Request.from_wire(request_message)
 		if (self.next):
 			self.next.handle(dialog_flow)
 
@@ -75,9 +75,9 @@ class SendAckReceiveResponseHeaderInvitation(WaitingServerResponseStep):
 	def handle(self, dialog_flow):
 		if (not dialog_flow.timed_out):
 			self.socket.connect(dialog_flow.request.header["ack_endpoint"])
-			self.socket.send(Ack(dialog_flow.request, self.server_id).to_wire())
+			self.socket.send_multipart(Ack(dialog_flow.request, self.server_id).to_wire())
 			if (self.socket.poll(self.timeout)):
-				dialog_flow.response_header_invitation = ResponseHeaderInvitation.from_wire(self.socket.recv())
+				dialog_flow.response_header_invitation = ResponseHeaderInvitation.from_wire(self.socket.recv_multipart())
 			else:
 				dialog_flow.timed_out = True
 			self.socket.disconnect(self.socket.LAST_ENDPOINT)
@@ -106,9 +106,9 @@ class SendResponseHeaderReceiveResponseInvitation(WaitingServerResponseStep):
 	def handle(self, dialog_flow):
 		if (not dialog_flow.timed_out):
 			self.socket.connect(dialog_flow.response_header_invitation.header["response_header_endpoint"])
-			self.socket.send(ResponseHeader(dialog_flow.response).to_wire())
+			self.socket.send_multipart(ResponseHeader(dialog_flow.response).to_wire())
 			if (self.socket.poll(self.timeout)):
-				dialog_flow.response_invitation = ResponseInvitation.from_wire(self.socket.recv())
+				dialog_flow.response_invitation = ResponseInvitation.from_wire(self.socket.recv_multipart())
 			else:
 				dialog_flow.timed_out = True
 			self.socket.disconnect(self.socket.LAST_ENDPOINT)
@@ -125,7 +125,7 @@ class TrySendResponseContent(ServerResponseStep):
 	def handle(self, dialog_flow):
 		if (not dialog_flow.timed_out and dialog_flow.response_invitation.header["status"] == 100):
 			self.socket.connect(dialog_flow.response_invitation.header["response_endpoint"])
-			self.socket.send(dialog_flow.response.to_wire())
+			self.socket.send_multipart(dialog_flow.response.to_wire())
 			self.socket.disconnect(self.socket.LAST_ENDPOINT)
 		if (self.next is not None):
 			self.next.handle(dialog_flow)

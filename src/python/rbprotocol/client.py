@@ -117,7 +117,7 @@ class RequestBroadcast(ClientRequestStep):
 		self.request_socket.bind("tcp://*:{}".format(port))
 
 	def handle(self, dialog_flow):
-		self.request_socket.send(dialog_flow.request.to_wire())
+		self.request_socket.send_multipart(dialog_flow.request.to_wire())
 		if (self.next is not None):
 			self.next.handle(dialog_flow)
 
@@ -131,11 +131,11 @@ class ReceiveRespondAcks(ClientRequestStep):
 			if (dialog_flow.ack_socket.poll(dialog_flow.request.header["ack_timeout"])):
 				responder_message = dialog_flow.ack_socket.recv_multipart()
 				responder_id = responder_message[0]
-				ack = Ack.from_wire(responder_message[1])
+				ack = Ack.from_wire(responder_message[1:])
 				if (ack.header["correlation_id"] == dialog_flow.request.header["correlation_id"]):
 					dialog_flow.acks.append(ack)
 					dialog_flow.ack_socket.send_multipart(
-						[responder_id, dialog_flow.response_header_invitation.to_wire()])
+						[responder_id] + dialog_flow.response_header_invitation.to_wire())
 			else:
 				break
 		if (self.next is not None):
@@ -153,13 +153,13 @@ class ReceiveRespondResponseHeaders(ClientRequestStep):
 			if (dialog_flow.response_header_socket.poll(dialog_flow.response_header_invitation.header["response_header_timeout"])):
 				responder_msg = dialog_flow.response_header_socket.recv_multipart()
 				responder_id = responder_msg[0]
-				header = ResponseHeader.from_wire(responder_msg[1])
+				header = ResponseHeader.from_wire(responder_msg[1:])
 				if (header.header["correlation_id"] == dialog_flow.request.header["correlation_id"] and self.validate_header(header, dialog_flow.request)):
 					dialog_flow.response_headers.append(header)
 					response = dialog_flow.response_invitation_continue
 				else:
 					response = dialog_flow.response_invitation_dontcontinue
-				dialog_flow.response_header_socket.send_multipart([responder_id, response.to_wire()])
+				dialog_flow.response_header_socket.send_multipart([responder_id] + response.to_wire())
 			else:
 				break
 		if (self.next is not None):
@@ -176,7 +176,7 @@ class ReceiveResponses(ClientRequestStep):
 		while (len(dialog_flow.responses) < len(dialog_flow.response_headers)):
 			if (dialog_flow.response_socket.poll(dialog_flow.response_invitation_continue.header["response_timeout"])):
 				responder_msg = dialog_flow.response_socket.recv_multipart()
-				response = Response.from_wire(responder_msg[1])
+				response = Response.from_wire(responder_msg[1:])
 				if (response.header["correlation_id"] == dialog_flow.request.header["correlation_id"]):
 					dialog_flow.responses.append(response)
 					if (self.on_response_received):

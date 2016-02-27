@@ -2,47 +2,37 @@
 
 import uuid
 import json
-import re
 from rbprotocol import checktypes
 
 
-class Message(object):
+class HeaderMessage(object):
+	def __init__(self):
+		super(HeaderMessage, self).__init__()
+
+	def to_wire(self):
+		return [json.dumps(self.header)]
+
+	@classmethod
+	def from_wire(cls, wired_message):
+		message = HeaderMessage()
+		message.header = json.loads(wired_message[0])
+		return message
+
+
+class Message(HeaderMessage):
 	def __init__(self):
 		self.header = None
 		self.body = None
 
 	def to_wire(self):
 		header = json.dumps(self.header)
-		wired_message = "{}{}{}".format(
-			len(header),
-			header,
-			self.body)
-		return wired_message
+		return [header, self.body]
 
 	@classmethod
 	def from_wire(cls, wired_message):
-		matches = re.search('^(?P<header_len>[0-9]+)(?P<content>.+)', wired_message)
-		header_len = int(matches.group('header_len'))
-		content = matches.group('content')
-		header = json.loads(content[:header_len])
-		body = content[header_len:]
 		message = Message()
-		message.header = header
-		message.body = body
-		return message
-
-
-class HeaderMessage(Message):
-	def __init__(self):
-		super(HeaderMessage, self).__init__()
-
-	def to_wire(self):
-		return json.dumps(self.header)
-
-	@classmethod
-	def from_wire(cls, wired_message):
-		message = HeaderMessage()
-		message.header = json.loads(wired_message)
+		message.header = json.loads(wired_message[0])
+		message.body = wired_message[1]
 		return message
 
 
