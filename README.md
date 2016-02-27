@@ -49,6 +49,8 @@ The protocol as well as its implementation are still in very early stages.
 
 ## Usage Example
 
+Please, take a look at the [examples](src/python/examples) directory for more examples.
+
 ### A Distributed Search Engine - Oh!
 
 The following example represents a very simple distributed search engine with two search nodes. One search node searches lines of a text file and the other searches on http://jsonplaceholder.typicode.com/posts/.
