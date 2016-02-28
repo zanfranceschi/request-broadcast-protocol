@@ -13,6 +13,8 @@ from itertools import groupby
 class NumberAnalysis(RequestResponder):
 	def __init__(self, server_id):
 		super(NumberAnalysis, self).__init__(server_id)
+		with open('storage/text.txt') as f:
+			self.text = f.read().replace('\n', '')
 
 	def respond(self, request):
 		q = request.body.strip()
@@ -20,16 +22,13 @@ class NumberAnalysis(RequestResponder):
 		query = ''.join([str(m) for m in matches])
 		numbers = [k for k, v in groupby(sorted(query))]
 
-		with open('storage/text.txt') as f:
-			text = f.read().replace('\n', '')
-
 		result = ""
 		result += "+-------+-------------+\n"
 		result += "|  NUMB | OCCURRENCES |\n"
 		result += "+-------+-------------+\n"
 
 		for number in numbers:
-			result += "|   {}   |     {}    |\n".format(number, str(text.count(number)).rjust(4, '0'))
+			result += "|   {}   |     {}    |\n".format(number, str(self.text.count(number)).rjust(4, '0'))
 
 		result += "+-------+-------------+"
 

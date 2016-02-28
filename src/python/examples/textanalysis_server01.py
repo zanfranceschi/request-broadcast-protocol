@@ -13,6 +13,8 @@ from itertools import groupby
 class AlphaAnalysis(RequestResponder):
 	def __init__(self, server_id):
 		super(AlphaAnalysis, self).__init__(server_id)
+		with open('storage/text.txt') as f:
+			self.text = f.read().replace('\n', '')
 
 	def respond(self, request):
 		q = request.body.upper().strip()
@@ -20,16 +22,13 @@ class AlphaAnalysis(RequestResponder):
 		query = ''.join([str(m) for m in matches])
 		chars = [k for k, v in groupby(sorted(query))]
 
-		with open('storage/text.txt') as f:
-			text = f.read().replace('\n', '')
-
 		result = ""
 		result += "+-------+-------------+\n"
 		result += "|  CHAR | OCCURRENCES |\n"
 		result += "+-------+-------------+\n"
 
 		for char in chars:
-			result += "|   {}   |     {}    |\n".format(char, str(text.count(char)).rjust(4, '0'))
+			result += "|   {}   |     {}    |\n".format(char, str(self.text.count(char)).rjust(4, '0'))
 
 		result += "+-------+-------------+"
 
