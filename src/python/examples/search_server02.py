@@ -1,4 +1,4 @@
-#!/home/zanfranceschi/Projects/request-broadcast-protocol/src/python/virtenv/bin/python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 import sys
@@ -8,6 +8,7 @@ import json
 from rbprotocol.messages import Response
 from rbprotocol.server import RequestResponder, Server
 import requests
+from settings import CLIENT_HOST
 
 
 class PostsSearch(RequestResponder):
@@ -19,9 +20,9 @@ class PostsSearch(RequestResponder):
 	def respond(self, request):
 		q = request.body.lower().strip()
 		result = [{
-			"description" : post["title"],
-			"category" : "post",
-			"location" : "http://jsonplaceholder.typicode.com/posts/"
+			"description": post["title"],
+			"category": "post",
+			"location": "http://jsonplaceholder.typicode.com/posts/"
 		} for post in self.posts if q in post["title"].lower()]
 		response = Response(
 			request.header["correlation_id"],
@@ -33,7 +34,7 @@ class PostsSearch(RequestResponder):
 
 server_id = "posts search"
 search = PostsSearch(server_id)
-server = Server(server_id, "localhost", 5000, 1000, search)
+server = Server(server_id, CLIENT_HOST, 5000, 1000, search)
 print server_id, "accepting requests"
 server.start()
 

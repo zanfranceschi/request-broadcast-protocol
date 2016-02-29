@@ -1,0 +1,4 @@
+To run the examples you'll need the following libraries:
+- pyzmq
+- requests
+- uuid

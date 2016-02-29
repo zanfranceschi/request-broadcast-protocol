@@ -1,4 +1,4 @@
-#!/home/zanfranceschi/Projects/request-broadcast-protocol/src/python/virtenv/bin/python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 import sys
@@ -8,13 +8,18 @@ from rbprotocol.messages import Response
 from rbprotocol.server import RequestResponder, Server
 import re
 from itertools import groupby
+from settings import CLIENT_HOST
 
 
 class NumberAnalysis(RequestResponder):
 	def __init__(self, server_id):
 		super(NumberAnalysis, self).__init__(server_id)
 		with open('storage/text.txt') as f:
-			self.text = f.read().replace('\n', '')
+			file_content = f.read().replace('\n', '')
+		matches = re.findall('[0-9]+', file_content)
+		all_nums = ''.join([str(m) for m in matches])
+		nums = [k for k, v in groupby(sorted(all_nums))]
+		self.occurrences = {num: str(file_content.count(num)).rjust(4, '0') for num in nums}
 
 	def respond(self, request):
 		q = request.body.strip()
@@ -28,7 +33,8 @@ class NumberAnalysis(RequestResponder):
 		result += "+-------+-------------+\n"
 
 		for number in numbers:
-			result += "|   {}   |     {}    |\n".format(number, str(self.text.count(number)).rjust(4, '0'))
+			if (number in self.occurrences):
+				result += "|   {}   |     {}    |\n".format(number, self.occurrences[number])
 
 		result += "+-------+-------------+"
 
@@ -41,6 +47,6 @@ class NumberAnalysis(RequestResponder):
 
 server_id = "number chars analysis"
 processor = NumberAnalysis(server_id)
-server = Server(server_id, "localhost", 4000, 1000, processor)
+server = Server(server_id, CLIENT_HOST, 4000, 1000, processor)
 print server_id, "accepting requests"
 server.start()

@@ -1,11 +1,13 @@
-#!/home/zanfranceschi/Projects/request-broadcast-protocol/src/python/virtenv/bin/python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
+
 import sys
 import os
 sys.path.insert(0, os.path.abspath('..'))
 import json
 from rbprotocol.messages import Request
 from rbprotocol.client import Client
+from settings import CLIENT_HOST
 
 
 def search_callback(response):
@@ -21,7 +23,7 @@ def all_received(responses):
 	print "-" * 50
 
 
-client = Client('localhost', 5000, 10, 1000, 100, search_callback, all_received)
+client = Client(CLIENT_HOST, 5000, 100, 1000, 1000, search_callback, all_received)
 
 while True:
 	search = raw_input("enter your search term: ")

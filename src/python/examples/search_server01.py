@@ -1,4 +1,4 @@
-#!/home/zanfranceschi/Projects/request-broadcast-protocol/src/python/virtenv/bin/python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 import sys
@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.abspath('..'))
 import json
 from rbprotocol.messages import Response
 from rbprotocol.server import RequestResponder, Server
+from settings import CLIENT_HOST
 
 
 class FileSearch(RequestResponder):
@@ -18,9 +19,9 @@ class FileSearch(RequestResponder):
 		with open("storage/db.txt") as f:
 			lines = f.readlines()
 			result = [{
-				"description" : line.strip(),
-				"category" : "fileContent",
-				"location" : "db.txt"
+				"description": line.strip(),
+				"category": "fileContent",
+				"location": "db.txt"
 				} for line in lines if q in line.lower().strip()]
 		response = Response(
 			request.header["correlation_id"],
@@ -31,6 +32,6 @@ class FileSearch(RequestResponder):
 
 server_id = "db.txt search"
 search = FileSearch(server_id)
-server = Server(server_id, "localhost", 5000, 1000, search)
+server = Server(server_id, CLIENT_HOST, 5000, 1000, search)
 print server_id, "accepting requests"
 server.start()
