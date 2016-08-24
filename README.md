@@ -11,7 +11,7 @@ I wanted to build a search engine capable of searching into different and unstru
 ## High Level Protocol Dialog
 
 - Client broadcasts (publishes in a pub/sub fashion) a request with an ack random endpoint
-- Servers receive the request notification and acks back to client
+- Servers receive the request notification and ack back to client
 - For each received ack, client responds with a "send response header to" random endpoint (in a HTTP Expect: 100-continue header fashion)
 - Servers receive the "send response header to" and send the response header to client containing information about the response body
 - For each received response header, client checks it and responds with a "send response body to" (status 100) random endpoint if the response header is satisfactory, or responds with a 417 status (not satisfactory header response)
